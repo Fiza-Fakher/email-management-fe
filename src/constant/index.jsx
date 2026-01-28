@@ -1,12 +1,10 @@
 export const INITIAL_EMAILS = [
-  { id: 1, email: "john.doe@example.com", dateAdded: "1/15/2024", status: "Pending" },
-  { id: 2, email: "sarah.smith@company.com", dateAdded: "1/10/2024", status: "Authorized" },
-  { id: 3, email: "mike.wilson@email.com", dateAdded: "1/12/2024", status: "Contacted" },
-  { id: 4, email: "emma.brown@test.com", dateAdded: "1/8/2024", status: "Pending" },
-  { id: 5, email: "david.lee@sample.com", dateAdded: "1/5/2024", status: "Rejected" },
+  { id: 1, firstName: "John", lastName: "Doe", email: "john.doe@example.com", dateAdded: "1/15/2024" },
+  { id: 2, firstName: "Sarah", lastName: "Smith", email: "sarah.smith@company.com", dateAdded: "1/10/2024" },
+  { id: 3, firstName: "Mike", lastName: "Wilson", email: "mike.wilson@email.com", dateAdded: "1/12/2024" },
+  { id: 4, firstName: "Emma", lastName: "Brown", email: "emma.brown@test.com", dateAdded: "1/8/2024" },
+  { id: 5, firstName: "David", lastName: "Lee", email: "david.lee@sample.com", dateAdded: "1/5/2024" },
 ];
-
-export const TABS = ["All", "Pending", "Authorized", "Contacted", "Rejected"];
 
 export function badgeStyle(status) {
   const base =
