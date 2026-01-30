@@ -11,28 +11,28 @@ function Login() {
   const handleChange = (e) =>
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
 
-    try {
-      const { data } = await axios.post(
-        `${import.meta.env.VITE_BASE_API}/auth/login`,
-        form,
-        { headers: { "Content-Type": "application/json" } }
-      );
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
-      localStorage.setItem("token", data.token);
+  try {
+    const { data } = await axios.post(
+      `${import.meta.env.VITE_BASE_API}/auth/login`,
+      form,
+      { headers: { "Content-Type": "application/json" } }
+    );
 
-      // login ke baad dashboard
-      navigate("/", { replace: true });
-    } catch (err) {
-      setError(err?.response?.data?.message || "Login failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+    localStorage.setItem("token", data.token);
+    navigate("/", { replace: true });
+
+  } catch (err) {
+    setError(err?.response?.data?.message || "Login failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div
