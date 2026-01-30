@@ -1,28 +1,91 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { IoSearchOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 import AddEmailModal from "../common/addEmailModal";
-import { INITIAL_EMAILS } from "../../constant/index";
+import axios from "axios";
 
 export default function EmailsPanel() {
   const [activeTab, setActiveTab] = useState("All");
   const [query, setQuery] = useState("");
-  const [emails, setEmails] = useState(INITIAL_EMAILS);
+  const [emails, setEmails] = useState([]);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const token = localStorage.getItem("token");
+
+  const api = axios.create({
+    baseURL: import.meta.env.VITE_BASE_API, // http://localhost:5000/api
+  });
+
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+  const fetchEmails = async () => {
+    try {
+      setLoading(true);
+      const { data } = await api.get("/emails", { headers: authHeaders });
+      setEmails(data); // backend: [{id, name, email, createdAt...}]
+    } catch (err) {
+      console.log(err);
+      // optional: show error state
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filtered = useMemo(() => {
     return emails.filter((row) => {
+      // backend me status/firstName/lastName nahi
       const matchTab = activeTab === "All" ? true : row.status === activeTab;
+
       const q = query.toLowerCase();
       const matchQuery =
-        row.email.toLowerCase().includes(q) ||
-        (row.firstName || "").toLowerCase().includes(q) ||
-        (row.lastName || "").toLowerCase().includes(q);
+        (row.email || "").toLowerCase().includes(q) ||
+        (row.name || "").toLowerCase().includes(q);
 
       return matchTab && matchQuery;
     });
   }, [activeTab, query, emails]);
+
+  // helper to split name for UI columns
+  const splitName = (name = "") => {
+    const parts = name.trim().split(" ");
+    const firstName = parts[0] || "";
+    const lastName = parts.slice(1).join(" ");
+    return { firstName, lastName };
+  };
+
+  const handleAddEmail = async ({ firstName, lastName, email }) => {
+    try {
+      const name = `${firstName} ${lastName}`.trim();
+
+      const { data } = await api.post(
+        "/emails",
+        { name, email },
+        { headers: { "Content-Type": "application/json" } } // add is public in backend
+      );
+
+      // add on top (or just refetch)
+      setEmails((prev) => [data, ...prev]);
+      setOpen(false);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const handleDelete = async (row) => {
+    try {
+      await api.delete(`/emails/${row.id}`, { headers: authHeaders });
+      setEmails((prev) => prev.filter((x) => x.id !== row.id));
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   const rowActions = [
     {
@@ -32,7 +95,7 @@ export default function EmailsPanel() {
         color: "var(--brand)",
         background: "var(--bg-secondary)",
       },
-      onClick: (row) => console.log("view", row),
+      onClick: (row) => navigate(`/detail/${row.id}`),
     },
     {
       label: "Delete",
@@ -41,19 +104,9 @@ export default function EmailsPanel() {
         color: "var(--danger)",
         background: "var(--bg-secondary)",
       },
-      onClick: (row) => console.log("delete", row),
+      onClick: handleDelete,
     },
   ];
-
-  const handleAddEmail = ({ firstName, lastName, email, status }) => {
-    if (emails.some((x) => x.email.toLowerCase() === email.toLowerCase())) return;
-
-    const dateAdded = new Date().toLocaleDateString("en-US");
-    setEmails((prev) => [
-      { id: Date.now(), firstName, lastName, email, dateAdded, status },
-      ...prev,
-    ]);
-  };
 
   return (
     <>
@@ -68,7 +121,7 @@ export default function EmailsPanel() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search first name, last name, email..."
+            placeholder="Search name, email..."
             className="w-full bg-transparent text-sm outline-none"
           />
         </div>
@@ -76,8 +129,10 @@ export default function EmailsPanel() {
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          Total: {filtered.length} emails
+          Total: {filtered.length} emails {loading ? "(loading...)" : ""}
         </div>
+
+        
       </div>
 
       <div
@@ -110,62 +165,62 @@ export default function EmailsPanel() {
             </thead>
 
             <tbody>
-              {filtered.map((row, idx) => (
-                <tr
-                  key={row.id}
-                  className="border-t transition-all duration-200"
-                  style={{
-                    borderColor: "var(--border)",
-                    background: idx % 2 === 0 ? "transparent" : "rgba(15,23,42,.015)",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "rgba(29,78,216,.06)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background =
-                      idx % 2 === 0 ? "transparent" : "rgba(15,23,42,.015)")
-                  }
-                >
-                  <td className="px-5 py-5" style={{ color: "var(--text-primary)" }}>
-                    {row.firstName || "-"}
-                  </td>
+              {filtered.map((row, idx) => {
+                const { firstName, lastName } = splitName(row.name);
+                const dateAdded = row.createdAt
+                  ? new Date(row.createdAt).toLocaleDateString("en-US")
+                  : "-";
 
-                  <td className="px-5 py-5" style={{ color: "var(--text-primary)" }}>
-                    {row.lastName || "-"}
-                  </td>
+                return (
+                  <tr
+                    key={row.id}
+                    className="border-t transition-all duration-200"
+                    style={{
+                      borderColor: "var(--border)",
+                      background: idx % 2 === 0 ? "transparent" : "rgba(15,23,42,.015)",
+                    }}
+                  >
+                    <td className="px-5 py-5" style={{ color: "var(--text-primary)" }}>
+                      {firstName || "-"}
+                    </td>
 
-                  <td className="px-5 py-5">
-                    <button
-                      onClick={() => navigate(`/detail/${row.id}`)}
-                      className="font-semibold cursor-pointer"
-                      style={{ color: "var(--brand)" }}
-                    >
-                      {row.email}
-                    </button>
-                  </td>
+                    <td className="px-5 py-5" style={{ color: "var(--text-primary)" }}>
+                      {lastName || "-"}
+                    </td>
 
-                  <td className="px-5 py-5" style={{ color: "var(--text-secondary)" }}>
-                    {row.dateAdded}
-                  </td>
+                    <td className="px-5 py-5">
+                      <button
+                        onClick={() => navigate(`/detail/${row.id}`)}
+                        className="font-semibold cursor-pointer"
+                        style={{ color: "var(--brand)" }}
+                      >
+                        {row.email}
+                      </button>
+                    </td>
 
-                  <td className="px-5 py-5">
-                    <div className="flex flex-wrap gap-2">
-                      {rowActions.map((action) => (
-                        <button
-                          key={action.label}
-                          onClick={() => action.onClick(row)}
-                          className="rounded-xl border px-4 py-2 text-xs font-semibold transition-all duration-200 hover:-translate-y-[1px] hover:shadow-md active:translate-y-0"
-                          style={action.style}
-                        >
-                          {action.label}
-                        </button>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-5 py-5" style={{ color: "var(--text-secondary)" }}>
+                      {dateAdded}
+                    </td>
 
-              {filtered.length === 0 && (
+                    <td className="px-5 py-5">
+                      <div className="flex flex-wrap gap-2">
+                        {rowActions.map((action) => (
+                          <button
+                            key={action.label}
+                            onClick={() => action.onClick(row)}
+                            className="rounded-xl border px-4 py-2 text-xs font-semibold transition-all duration-200 hover:-translate-y-[1px] hover:shadow-md active:translate-y-0"
+                            style={action.style}
+                          >
+                            {action.label}
+                          </button>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {!loading && filtered.length === 0 && (
                 <tr>
                   <td
                     className="px-5 py-14 text-center"
