@@ -123,7 +123,7 @@ export default function Detail() {
                 icon={<HiOutlineCalendarDays size={22} />}
                 iconBg="rgba(29,78,216,.10)"
                 iconColor="var(--brand)"
-                label="Date Added"
+                label="Created At"
                 value={emailRow.dateAdded}
               />
 
