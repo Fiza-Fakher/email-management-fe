@@ -1,22 +1,51 @@
 import React, { useState } from "react";
+import axios from "axios";
 import Navbar from "../../components/common/Navbar";
 
 function Web() {
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (e) =>
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
-  const handleSubmit = (e) => {
-  e.preventDefault();
-  console.log(form);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setLoading(true);
 
-  setForm({
-    firstName: "",
-    lastName: "",
-    email: "",
-  });
-};
+    try {
+      const token = localStorage.getItem("token"); // agar login se token save kiya hua
+
+      const payload = {
+        name: `${form.firstName} ${form.lastName}`.trim(),
+        email: form.email,
+      };
+
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_BASE_API}/emails`,
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
+
+      setSuccess("User added successfully");
+      console.log("Created:", data);
+
+      setForm({ firstName: "", lastName: "", email: "" });
+    } catch (err) {
+      setError(err?.response?.data?.message || "Add failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
@@ -31,12 +60,12 @@ function Web() {
             Add User
           </h1>
 
+          {error && <p className="mb-3 text-sm" style={{ color: "red" }}>{error}</p>}
+          {success && <p className="mb-3 text-sm" style={{ color: "green" }}>{success}</p>}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label
-                className="block text-sm font-medium mb-1"
-                style={{ color: "var(--text-secondary)" }}
-              >
+              <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
                 First Name
               </label>
               <input
@@ -55,10 +84,7 @@ function Web() {
             </div>
 
             <div>
-              <label
-                className="block text-sm font-medium mb-1"
-                style={{ color: "var(--text-secondary)" }}
-              >
+              <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
                 Last Name
               </label>
               <input
@@ -77,10 +103,7 @@ function Web() {
             </div>
 
             <div>
-              <label
-                className="block text-sm font-medium mb-1"
-                style={{ color: "var(--text-secondary)" }}
-              >
+              <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
                 Email
               </label>
               <input
@@ -100,10 +123,11 @@ function Web() {
 
             <button
               type="submit"
-              className="w-full rounded-lg px-4 py-2 font-medium text-white"
+              disabled={loading}
+              className="w-full rounded-lg px-4 py-2 font-medium text-white disabled:opacity-60"
               style={{ background: "var(--brand)" }}
             >
-              Add
+              {loading ? "Adding..." : "Add"}
             </button>
           </form>
         </div>
