@@ -3,6 +3,8 @@ import { IoSearchOutline } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 import AddEmailModal from "../common/addEmailModal";
 import axios from "axios";
+import { FaRegEdit } from "react-icons/fa";
+import { MdDelete } from "react-icons/md";
 
 export default function EmailsPanel() {
   const [activeTab, setActiveTab] = useState("All");
@@ -15,7 +17,7 @@ export default function EmailsPanel() {
   const token = localStorage.getItem("token");
 
   const api = axios.create({
-    baseURL: import.meta.env.VITE_BASE_API, // http://localhost:5000/api
+    baseURL: import.meta.env.VITE_BASE_API,
   });
 
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
@@ -24,10 +26,9 @@ export default function EmailsPanel() {
     try {
       setLoading(true);
       const { data } = await api.get("/emails", { headers: authHeaders });
-      setEmails(data); // backend: [{id, name, email, createdAt...}]
+      setEmails(data);
     } catch (err) {
       console.log(err);
-      // optional: show error state
     } finally {
       setLoading(false);
     }
@@ -40,7 +41,6 @@ export default function EmailsPanel() {
 
   const filtered = useMemo(() => {
     return emails.filter((row) => {
-      // backend me status/firstName/lastName nahi
       const matchTab = activeTab === "All" ? true : row.status === activeTab;
 
       const q = query.toLowerCase();
@@ -52,14 +52,6 @@ export default function EmailsPanel() {
     });
   }, [activeTab, query, emails]);
 
-  // helper to split name for UI columns
-  const splitName = (name = "") => {
-    const parts = name.trim().split(" ");
-    const firstName = parts[0] || "";
-    const lastName = parts.slice(1).join(" ");
-    return { firstName, lastName };
-  };
-
   const handleAddEmail = async ({ firstName, lastName, email }) => {
     try {
       const name = `${firstName} ${lastName}`.trim();
@@ -67,10 +59,9 @@ export default function EmailsPanel() {
       const { data } = await api.post(
         "/emails",
         { name, email },
-        { headers: { "Content-Type": "application/json" } } // add is public in backend
+        { headers: { "Content-Type": "application/json" } }
       );
 
-      // add on top (or just refetch)
       setEmails((prev) => [data, ...prev]);
       setOpen(false);
     } catch (err) {
@@ -89,18 +80,16 @@ export default function EmailsPanel() {
 
   const rowActions = [
     {
-      label: "View",
+      label: <FaRegEdit size={20} />,
       style: {
-        borderColor: "var(--brand)",
         color: "var(--brand)",
         background: "var(--bg-secondary)",
       },
       onClick: (row) => navigate(`/detail/${row.id}`),
     },
     {
-      label: "Delete",
+      label: <MdDelete size={22} />,
       style: {
-        borderColor: "var(--danger)",
         color: "var(--danger)",
         background: "var(--bg-secondary)",
       },
@@ -112,31 +101,35 @@ export default function EmailsPanel() {
     <>
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div
-          className="flex w-full items-center gap-2 rounded-xl border px-4 py-4"
-          style={{ background: "var(--bg-secondary)", borderColor: "var(--border)" }}
+          className="group flex w-full items-center gap-3 rounded-2xl border px-5 py-4 shadow-sm transition-all duration-300 hover:shadow-md focus-within:shadow-lg focus-within:ring-2"
+          style={{
+            background: "var(--bg-secondary)",
+            borderColor: "var(--border)",
+            "--tw-ring-color": "var(--brand)",
+            "--tw-ring-opacity": "0.15",
+          }}
         >
-          <span className="text-slate-500">
-            <IoSearchOutline size={22} />
+          <span className="transition-colors duration-200" style={{ color: "var(--text-secondary)" }}>
+            <IoSearchOutline size={24} />
           </span>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search name, email..."
-            className="w-full bg-transparent text-sm outline-none"
+            className="w-full bg-transparent text-sm outline-none placeholder:text-sm"
+            style={{ color: "var(--text-primary)" }}
           />
         </div>
       </div>
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          Total: {filtered.length} emails {loading ? "(loading...)" : ""}
+        <div className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+          Total: <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{filtered.length}</span> emails {loading ? "(loading...)" : ""}
         </div>
-
-        
       </div>
 
       <div
-        className="mt-6 overflow-hidden rounded-2xl border shadow-sm"
+        className="mt-6 overflow-hidden rounded-2xl border shadow-md transition-shadow duration-300 hover:shadow-lg"
         style={{ background: "var(--bg-secondary)", borderColor: "var(--border)" }}
       >
         <div className="overflow-x-auto">
@@ -144,21 +137,21 @@ export default function EmailsPanel() {
             <thead>
               <tr
                 className="border-b"
-                style={{ background: "rgba(15,23,42,.03)", borderColor: "var(--border)" }}
+                style={{
+                  background: "linear-gradient(to bottom, rgba(15,23,42,.04), rgba(15,23,42,.02))",
+                  borderColor: "var(--border)",
+                }}
               >
-                <th className="px-5 py-4 text-left text-xs font-bold tracking-wide uppercase">
-                  First Name
+                <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
+                  Name
                 </th>
-                <th className="px-5 py-4 text-left text-xs font-bold tracking-wide uppercase">
-                  Last Name
-                </th>
-                <th className="px-5 py-4 text-left text-xs font-bold tracking-wide uppercase">
+                <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
                   Email Address
                 </th>
-                <th className="px-5 py-4 text-left text-xs font-bold tracking-wide uppercase">
-                  Date Added
+                <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
+                  Created At
                 </th>
-                <th className="px-5 py-4 text-left text-xs font-bold tracking-wide uppercase">
+                <th className="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
                   Actions
                 </th>
               </tr>
@@ -166,7 +159,6 @@ export default function EmailsPanel() {
 
             <tbody>
               {filtered.map((row, idx) => {
-                const { firstName, lastName } = splitName(row.name);
                 const dateAdded = row.createdAt
                   ? new Date(row.createdAt).toLocaleDateString("en-US")
                   : "-";
@@ -174,41 +166,37 @@ export default function EmailsPanel() {
                 return (
                   <tr
                     key={row.id}
-                    className="border-t transition-all duration-200"
+                    className="border-t transition-all duration-200 hover:bg-opacity-50"
                     style={{
                       borderColor: "var(--border)",
                       background: idx % 2 === 0 ? "transparent" : "rgba(15,23,42,.015)",
                     }}
                   >
-                    <td className="px-5 py-5" style={{ color: "var(--text-primary)" }}>
-                      {firstName || "-"}
+                    <td className="px-6 py-5 font-medium" style={{ color: "var(--text-primary)" }}>
+                      {row.name || "-"}
                     </td>
 
-                    <td className="px-5 py-5" style={{ color: "var(--text-primary)" }}>
-                      {lastName || "-"}
-                    </td>
-
-                    <td className="px-5 py-5">
+                    <td className="px-6 py-5">
                       <button
                         onClick={() => navigate(`/detail/${row.id}`)}
-                        className="font-semibold cursor-pointer"
+                        className="cursor-pointer font-semibold transition-all duration-200 hover:underline hover:opacity-80"
                         style={{ color: "var(--brand)" }}
                       >
                         {row.email}
                       </button>
                     </td>
 
-                    <td className="px-5 py-5" style={{ color: "var(--text-secondary)" }}>
+                    <td className="px-6 py-5 text-sm" style={{ color: "var(--text-secondary)" }}>
                       {dateAdded}
                     </td>
 
-                    <td className="px-5 py-5">
+                    <td className="px-6 py-5">
                       <div className="flex flex-wrap gap-2">
-                        {rowActions.map((action) => (
+                        {rowActions.map((action, i) => (
                           <button
-                            key={action.label}
+                            key={i}
                             onClick={() => action.onClick(row)}
-                            className="rounded-xl border px-4 py-2 text-xs font-semibold transition-all duration-200 hover:-translate-y-[1px] hover:shadow-md active:translate-y-0"
+                            className="rounded-xl px-4 py-2.5 text-xs font-semibold shadow-sm transition-all duration-200 hover:shadow-md active:scale-95"
                             style={action.style}
                           >
                             {action.label}
@@ -223,11 +211,14 @@ export default function EmailsPanel() {
               {!loading && filtered.length === 0 && (
                 <tr>
                   <td
-                    className="px-5 py-14 text-center"
-                    colSpan={5}
+                    className="px-6 py-16 text-center"
+                    colSpan={4}
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    No results
+                    <div className="flex flex-col items-center gap-2">
+                      <IoSearchOutline size={48} opacity={0.3} />
+                      <p className="text-base font-medium">No results found</p>
+                    </div>
                   </td>
                 </tr>
               )}
